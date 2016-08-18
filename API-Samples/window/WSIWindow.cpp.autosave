@@ -24,8 +24,8 @@
 
 //==========================Event Message=======================
 struct EventType{
-    enum{NONE, MOUSE, KEY, TEXT, SHAPE} tag;
-    union{
+    enum{NONE, MOUSE, KEY, TEXT, SHAPE} tag;  //Message type
+    union{                                    //Check 'tag' to determine which union struct to use.
         struct {eMouseAction action; int16_t x; int16_t y; uint8_t btn;}mouse;
         struct {eKeyAction   action; uint8_t keycode;}key;
         struct {const char* str;}text;
@@ -49,16 +49,21 @@ protected:
     EventType TextEvent (const char* str);                                        //Text event
     EventType ShapeEvent(int16_t x, int16_t y, uint16_t width, uint16_t height);  //Window move/resize
 public:
+    //WindowImpl(CInstance& inst, const char* title, uint width, uint height);
+    //WindowImpl() : instance(0), width(64), height(64), running(false) {}
     WindowImpl() : instance(0), running(false) {}
     virtual ~WindowImpl() {}
+    //virtual bool PollEvent() = 0;
     virtual void Close() { running = false; }
     CInstance& Instance() { return *instance; }
     bool KeyState(eKeycode key){ return keystate[key]; }
     bool BtnState(uint8_t  btn){ return (btn<5)  ? btnstate[btn]:0; }
 
+
     bool running;
 
     virtual EventType GetEvent()=0; //fetch one event from the queue
+    //void (*OnMouseEvent)()=0;
 };
 
 EventType WindowImpl::MouseEvent(eMouseAction action, int16_t x, int16_t y, uint8_t btn) {
@@ -409,7 +414,7 @@ void Window_win32::CreateSurface(VkInstance instance){
 }
 
 EventType Window_win32::GetEvent(){
-    //EventType event;
+    EventType event;
 
     MSG msg = {};
     running = (GetMessage(&msg, NULL, 0, 0)>0);  //TODO: Try PeekMessage?
@@ -446,7 +451,7 @@ EventType Window_win32::GetEvent(){
         case WM_SYSKEYUP  : return KeyEvent(keyUP  , WIN32_TO_HID[msg.wParam]);    //+alt key
 
         //--Char event--
-        case WM_CHAR: { strncpy_s(buf, (const char*)&msg.wParam, 4);  return TextEvent(buf); } //return ascii code of key pressed
+        case WM_CHAR: { strncpy_s(buf, (const char*)&msg.wParam, 4);  return event.SetText(buf); } //return ascii code of key pressed
         }
         //printf(".");
         DispatchMessage(&msg);
